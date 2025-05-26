@@ -22,12 +22,12 @@ export class UserDetailsComponent implements OnInit {
   private location = inject(Location)
 
   ngOnInit() {
-    this.isLoading = true
     const userId = this.route.snapshot.paramMap.get('id')
     this.getUserDetails(userId);
   }
 
   getUserDetails(userId: string | null) {
+    this.isLoading = true
     this.user$ = this.userService.getUserById(Number(userId))
     this.user$.subscribe({
       next: (user) => {

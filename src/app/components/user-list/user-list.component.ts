@@ -24,6 +24,7 @@ export class UserListComponent implements OnInit {
   }
 
   getUserList(): void {
+    this.isLoading = true
     this.users$ = this.userService.getUsers()
     this.users$.subscribe({
       next: (users) => {

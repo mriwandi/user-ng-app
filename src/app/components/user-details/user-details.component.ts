@@ -2,18 +2,17 @@ import { Component, inject, OnInit } from '@angular/core';
 import { User } from '../../interface/user';
 import { UsersService } from '../../services/users/users.service';
 import { ActivatedRoute } from '@angular/router';
-import { Location, NgIf } from '@angular/common';
-import { Observable } from 'rxjs';
+import { AsyncPipe, Location, NgIf } from '@angular/common';
+import { catchError, finalize, Observable, of, tap } from 'rxjs';
 
 @Component({
   selector: 'app-user-details',
-  imports: [NgIf],
+  imports: [NgIf, AsyncPipe],
   templateUrl: './user-details.component.html',
   styleUrl: './user-details.component.scss'
 })
 export class UserDetailsComponent implements OnInit {
   user$!: Observable<User | null>
-  user: User | null = null
   isLoading: boolean = false
   visibleUserNotFound: boolean = false
 
@@ -23,23 +22,18 @@ export class UserDetailsComponent implements OnInit {
 
   ngOnInit() {
     const userId = this.route.snapshot.paramMap.get('id')
-    this.getUserDetails(userId);
+    this.fetchUserDetails(userId);
   }
 
-  getUserDetails(userId: string | null) {
+  fetchUserDetails(userId: string | null) {
     this.isLoading = true
-    this.user$ = this.userService.getUserById(Number(userId))
-    this.user$.subscribe({
-      next: (user) => {
-        this.isLoading = false
-        this.user = user
-        this.visibleUserNotFound = !user
-      },
-      error: (_) => {
-        this.isLoading = false
+    this.user$ = this.userService.getUserById(Number(userId)).pipe(
+      finalize(() => this.isLoading = false),
+      catchError(() => {
         this.visibleUserNotFound = true
-      }
-    })
+        return of(null);
+      })
+    )
   }
 
   onBackClick() {

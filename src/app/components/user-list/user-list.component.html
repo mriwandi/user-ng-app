@@ -16,7 +16,7 @@
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Actions</th>
           </tr>
         </thead>
-        <tbody class="bg-white divide-y divide-gray-200">
+        <tbody *ngIf="users$ | async as users" class="bg-white divide-y divide-gray-200">
           <tr *ngFor="let user of users" class="hover:bg-gray-50">
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ user.name }}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ user.email }}</td>
@@ -31,17 +31,19 @@
               </button>
             </td>
           </tr>
-          <tr *ngIf="isLoading">
-            <td colspan="5">
-              <div class="flex justify-center items-center h-20">
-                <div class="animate-spin rounded-full h-10 w-10 border-t-2 border-blue-500"></div>
-              </div>
-            </td>
-          </tr>
-          <tr *ngIf="!users || users.length === 0">
+          <tr *ngIf="users.length === 0">
             <td colspan="5">
               <div class="text-center text-gray-500 py-6 text-sm">
                 No users found
+              </div>
+            </td>
+          </tr>
+        </tbody>
+        <tbody *ngIf="isLoading">
+          <tr>
+            <td colspan="5">
+              <div class="flex justify-center items-center h-20">
+                <div class="animate-spin rounded-full h-10 w-10 border-t-2 border-blue-500"></div>
               </div>
             </td>
           </tr>

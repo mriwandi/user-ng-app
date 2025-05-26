@@ -1,40 +1,35 @@
 import { Component, inject, OnInit } from '@angular/core';
-import { NgForOf, NgIf } from '@angular/common';
+import { AsyncPipe, NgForOf, NgIf } from '@angular/common';
 import { Router } from '@angular/router';
 import { User } from '../../interface/user';
 import { UsersService } from '../../services/users/users.service';
-import { Observable } from 'rxjs';
+import { catchError, finalize, Observable, of, tap } from 'rxjs';
 
 @Component({
   selector: 'app-user-list',
-  imports: [NgForOf, NgIf],
+  imports: [NgForOf, NgIf, AsyncPipe],
   templateUrl: './user-list.component.html',
   styleUrl: './user-list.component.scss'
 })
 export class UserListComponent implements OnInit {
   users$!: Observable<User[]>
-  users: User[] = []
   isLoading: boolean = false
 
   private userService = inject(UsersService)
   private router = inject(Router)
 
   ngOnInit() {
-    this.getUserList()
+    this.fetchUsers()
   }
 
-  getUserList(): void {
+  fetchUsers(): void {
     this.isLoading = true
-    this.users$ = this.userService.getUsers()
-    this.users$.subscribe({
-      next: (users) => {
-        this.isLoading = false
-        this.users = users
-      },
-      error: (_) => {
-        this.isLoading = false
-      }
-    });
+    this.users$ = this.userService.getUsers().pipe(
+      finalize(() => this.isLoading = false),
+      catchError(() => {
+        return of([]);
+      })
+    )
   }
 
   onItemClick(id: number) {

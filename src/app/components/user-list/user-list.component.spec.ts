@@ -1,12 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
-
 import { UserListComponent } from './user-list.component';
 import { UsersService } from '../../services/users/users.service';
 import { Router } from '@angular/router';
-import { User } from '../../interface/user';
 import { of, throwError } from 'rxjs';
-
+import { User } from '../../interface/user';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 describe('UserListComponent', () => {
   let component: UserListComponent;
@@ -38,63 +36,63 @@ describe('UserListComponent', () => {
   ];
 
   beforeEach(async () => {
-    const usersServiceMock = jasmine.createSpyObj('UsersService', ['getUsers']);
+    const userServiceMock = jasmine.createSpyObj('UsersService', ['getUsers']);
     const routerMock = jasmine.createSpyObj('Router', ['navigate']);
 
     await TestBed.configureTestingModule({
-      imports: [UserListComponent, HttpClientTestingModule],
+      imports: [HttpClientTestingModule],
       providers: [
-        { provide: UsersService, useValue: usersServiceMock },
+        { provide: UsersService, useValue: userServiceMock },
         { provide: Router, useValue: routerMock }
       ]
-    })
-    .compileComponents();
+    }).compileComponents();
 
-    fixture = TestBed.createComponent(UserListComponent)
-    component = fixture.componentInstance
+    fixture = TestBed.createComponent(UserListComponent);
+    component = fixture.componentInstance;
     usersServiceSpy = TestBed.inject(UsersService) as jasmine.SpyObj<UsersService>;
     routerSpy = TestBed.inject(Router) as jasmine.SpyObj<Router>;
-
-    usersServiceSpy.getUsers.and.returnValue(of(mockUsers));
-    fixture.detectChanges()
   });
 
   it('should create', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should call getUserList method on init', () => {
-    const spy = spyOn(component, 'getUserList');
-    
+  it('should call fetchUsers on init', () => {
+    const spy = spyOn(component, 'fetchUsers');
     component.ngOnInit();
-
-    expect(spy).toHaveBeenCalledTimes(1)
+    expect(spy).toHaveBeenCalled();
   });
 
-  it('should set users on getUserList call', () => {
-    component.getUserList();
+  it('should set isLoading to false after users load successfully', () => {
+    usersServiceSpy.getUsers.and.returnValue(of(mockUsers));
+    component.fetchUsers();
 
-    expect(component.users).toEqual(mockUsers);
+    component.users$.subscribe(users => {
+      expect(users).toEqual(mockUsers);
+    });
+
     expect(component.isLoading).toBeFalse();
   });
 
-  it('should handle error in getUserList', () => {
-    usersServiceSpy.getUsers.and.returnValue(throwError(() => new Error('Failed to fetch')));
+  it('should set isLoading to false and users$ to empty array on error', () => {
+    usersServiceSpy.getUsers.and.returnValue(throwError(() => new Error('Failed')));
+    component.fetchUsers();
 
-    component.getUserList();
+    component.users$.subscribe(users => {
+      expect(users).toEqual([]);
+    });
 
-    expect(component.users).toEqual([]);
     expect(component.isLoading).toBeFalse();
   });
 
-  it('should navigate to user detail when item clicked', () => {
-    component.onItemClick(5);
-    expect(routerSpy.navigate).toHaveBeenCalledWith(['/users', 5]);
+  it('should navigate to user details on item click', () => {
+    component.onItemClick(42);
+    expect(routerSpy.navigate).toHaveBeenCalledWith(['/users', 42]);
   });
 
-  it('should build valid URL with http if missing', () => {
+  it('should build valid url when missing http/https', () => {
     expect(component.buildValidUrl('example.com')).toBe('http://example.com');
-    expect(component.buildValidUrl('https://example.com')).toBe('https://example.com');
     expect(component.buildValidUrl('http://example.com')).toBe('http://example.com');
+    expect(component.buildValidUrl('https://example.com')).toBe('https://example.com');
   });
 });

@@ -14,7 +14,7 @@ export class UsersService {
     return this.http.get<User[]>(apiRoutes.getUsers);
   }
 
-  getUserById(id: number): Observable<User> {
+  getUserById(id: number): Observable<User | null> {
     return this.http.get<User>(apiRoutes.getUserById(id.toString()));
   }
 }

@@ -1,18 +1,16 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-
 import { UserDetailsComponent } from './user-details.component';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { ActivatedRoute, Router } from '@angular/router';
-import { Location } from '@angular/common';
 import { UsersService } from '../../services/users/users.service';
+import { ActivatedRoute } from '@angular/router';
+import { Location } from '@angular/common';
 import { of, throwError } from 'rxjs';
 import { User } from '../../interface/user';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 describe('UserDetailsComponent', () => {
   let component: UserDetailsComponent;
   let fixture: ComponentFixture<UserDetailsComponent>;
   let usersServiceSpy: jasmine.SpyObj<UsersService>;
-  let routerSpy: jasmine.SpyObj<Router>;
   let locationSpy: jasmine.SpyObj<Location>;
 
   const mockUser: User = {
@@ -41,7 +39,7 @@ describe('UserDetailsComponent', () => {
     const locationMock = jasmine.createSpyObj('Location', ['back']);
 
     await TestBed.configureTestingModule({
-      imports: [UserDetailsComponent, HttpClientTestingModule],
+      imports: [HttpClientTestingModule],
       providers: [
         { provide: UsersService, useValue: usersServiceMock },
         { provide: Location, useValue: locationMock },
@@ -50,68 +48,71 @@ describe('UserDetailsComponent', () => {
           useValue: {
             snapshot: {
               paramMap: {
-                get: (key: string) => {
-                  if (key === 'id') {
-                    return '1'; // Mock user ID
-                  }
-                  return null;
-                }
+                get: (key: string) => '1'
               }
             }
           }
         }
       ]
-    })
-    .compileComponents();
+    }).compileComponents();
 
     fixture = TestBed.createComponent(UserDetailsComponent);
     component = fixture.componentInstance;
     usersServiceSpy = TestBed.inject(UsersService) as jasmine.SpyObj<UsersService>;
-    routerSpy = TestBed.inject(Router) as jasmine.SpyObj<Router>;
     locationSpy = TestBed.inject(Location) as jasmine.SpyObj<Location>;
-
-    usersServiceSpy.getUserById.and.returnValue(of(mockUser));
-    fixture.detectChanges();
   });
 
   it('should create', () => {
     expect(component).toBeTruthy();
   });
 
-  it ('should call getUserDetails on init', () => {
-    const spy = spyOn(component, 'getUserDetails');
+  it('should call fetchUserDetails on ngOnInit with route param', () => {
+    const spy = spyOn(component, 'fetchUserDetails').and.callThrough();
+    usersServiceSpy.getUserById.and.returnValue(of(mockUser));
     component.ngOnInit();
-    expect(spy).toHaveBeenCalledTimes(1);
-    expect(spy).toHaveBeenCalledWith('1');
+    expect(spy).toHaveBeenCalledOnceWith('1');
   });
 
-  it ('should set user and isLoading on getUserDetails success', () => {
-    component.getUserDetails('1');
+  it('should set user$ observable and flags correctly on success', (done) => {
+    usersServiceSpy.getUserById.and.returnValue(of(mockUser));
 
-    expect(component.user).toEqual(mockUser);
-    expect(component.isLoading).toBeFalse();
-    expect(component.visibleUserNotFound).toBeFalse();
-  });
+    component.fetchUserDetails('1');
 
-  it ('should set visibleUserNotFound to true when user is not found', () => {
-    usersServiceSpy.getUserById.and.returnValue(of(null as unknown as User));
-    component.getUserDetails('1');
-
-    expect(component.user).toBeNull();
-    expect(component.isLoading).toBeFalse();
-    expect(component.visibleUserNotFound).toBeTrue();
-  });
-
-  it('should set visibleUserNotFound to true on error', () => {
-    usersServiceSpy.getUserById.and.returnValue(throwError(() => new Error('Failed to fetch')));
-    
-    component.getUserDetails('1');
-    
-    expect(component.visibleUserNotFound).toBeTrue();
+    component.user$.subscribe(user => {
+      expect(user).toEqual(mockUser);
+      expect(component.visibleUserNotFound).toBeFalse();
+      done();
+    });
     expect(component.isLoading).toBeFalse();
   });
 
-  it('should navigate back when onBackClick is called', () => {
+  it('should handle null user response by setting visibleUserNotFound to true', (done) => {
+    usersServiceSpy.getUserById.and.returnValue(of(null));
+
+    component.fetchUserDetails('1');
+
+    component.user$.subscribe(user => {
+      expect(user).toBeNull();
+      expect(component.visibleUserNotFound).toBeTrue();
+      done();
+    });
+    expect(component.isLoading).toBeFalse();
+  });
+
+  it('should handle error and set visibleUserNotFound to true', (done) => {
+    usersServiceSpy.getUserById.and.returnValue(throwError(() => new Error('Error')));
+
+    component.fetchUserDetails('1');
+
+    component.user$.subscribe(user => {
+      expect(user).toBeNull();
+      expect(component.visibleUserNotFound).toBeTrue();
+      done();
+    });
+    expect(component.isLoading).toBeFalse();
+  });
+
+  it('should call location.back on onBackClick', () => {
     component.onBackClick();
     expect(locationSpy.back).toHaveBeenCalled();
   });

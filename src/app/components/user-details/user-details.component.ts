@@ -26,8 +26,11 @@ export class UserDetailsComponent implements OnInit {
   }
 
   fetchUserDetails(userId: string | null) {
-    this.isLoading = true
     this.user$ = this.userService.getUserById(Number(userId)).pipe(
+      tap((user) => {
+        this.isLoading = true
+        this.visibleUserNotFound = !user;
+      }),
       finalize(() => this.isLoading = false),
       catchError(() => {
         this.visibleUserNotFound = true

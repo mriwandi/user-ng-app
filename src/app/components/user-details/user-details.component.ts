@@ -1,9 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { User } from '../../interface/user';
 import { UsersService } from '../../services/users/users.service';
 import { ActivatedRoute } from '@angular/router';
 import { Location, NgIf } from '@angular/common';
-import { Title } from '@angular/platform-browser';
+import { Observable } from 'rxjs';
 
 @Component({
   selector: 'app-user-details',
@@ -11,24 +11,35 @@ import { Title } from '@angular/platform-browser';
   templateUrl: './user-details.component.html',
   styleUrl: './user-details.component.scss'
 })
-export class UserDetailsComponent {
-  user: User | null = null;
+export class UserDetailsComponent implements OnInit {
+  user$!: Observable<User | null>
+  user: User | null = null
+  isLoading: boolean = false
+  visibleUserNotFound: boolean = false
 
-  constructor(
-    private userService: UsersService, 
-    private route: ActivatedRoute,
-    private title: Title,
-    private location: Location,
-  ) {}
+  private userService = inject(UsersService)
+  private route = inject(ActivatedRoute)
+  private location = inject(Location)
 
   ngOnInit() {
+    this.isLoading = true
     const userId = this.route.snapshot.paramMap.get('id')
-    if (userId) {
-      this.userService.getUserById(Number(userId)).subscribe((data: User) => {
-        this.user = data
-        this.title.setTitle(`User Details - ${data.name}`);
-      });
-    }
+    this.getUserDetails(userId);
+  }
+
+  getUserDetails(userId: string | null) {
+    this.user$ = this.userService.getUserById(Number(userId))
+    this.user$.subscribe({
+      next: (user) => {
+        this.isLoading = false
+        this.user = user
+        this.visibleUserNotFound = !user
+      },
+      error: (_) => {
+        this.isLoading = false
+        this.visibleUserNotFound = true
+      }
+    })
   }
 
   onBackClick() {

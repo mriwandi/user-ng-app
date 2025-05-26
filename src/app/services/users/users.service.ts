@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { User } from '../../interface/user';
 import { apiRoutes } from '../../api-routes';
@@ -8,7 +8,7 @@ import { apiRoutes } from '../../api-routes';
   providedIn: 'root'
 })
 export class UsersService {
-  constructor(private http: HttpClient) {}
+  private http = inject(HttpClient)
 
   getUsers(): Observable<User[]> {
     return this.http.get<User[]>(apiRoutes.getUsers);

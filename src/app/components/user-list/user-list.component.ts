@@ -23,8 +23,8 @@ export class UserListComponent implements OnInit {
   }
 
   fetchUsers(): void {
+    this.isLoading = true;
     this.users$ = this.userService.getUsers().pipe(
-      tap(() => this.isLoading = true),
       finalize(() => this.isLoading = false),
       catchError(() => {
         return of([]);
